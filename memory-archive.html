@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Archive</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pink-light:#fff0f5;--pink-mid:#ffd6e7;--pink-soft:#ffb3d1;--pink-glow:rgba(255,182,213,0.4);--white:#ffffff;--text-dark:#2a1a22;--text-mid:#6b3a50;--text-soft:#c49aaa;--ts:1.2s cubic-bezier(0.4,0,0.2,1);--tm:0.7s cubic-bezier(0.4,0,0.2,1);--tf:0.35s ease}
+html,body{width:100%;height:100%;overflow:hidden;font-family:Georgia,'Times New Roman',serif;background:var(--pink-light);color:var(--text-dark)}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at 30% 20%,#fff5f8 0%,#ffe4ef 40%,#ffd6e7 100%)}
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity var(--ts);overflow-y:auto;flex-direction:column}
+.screen.active{opacity:1;pointer-events:all}
+#particles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.particle{position:absolute;border-radius:50%;background:var(--pink-soft);opacity:0;animation:fp linear infinite}
+@keyframes fp{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.15}90%{opacity:.08}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+</style>
+</head>
+<body>
+<div id="particles"></div>
+
+
+<!-- ENTRY SCREEN -->
+<div class="screen active" id="screen-entry">
+  <div class="entry-logo">&#10022;</div>
+  <h1 class="entry-title">Memory Archive</h1>
+  <p class="entry-sub">a personal collection of moments</p>
+  <button class="btn-start" id="btn-start">START</button>
+  <p class="entry-hint">best experienced in silence</p>
+</div>
+
+<!-- SCAN SCREEN -->
+<div class="screen" id="screen-scan">
+  <div class="scan-ring"><div class="scan-inner-ring"><div class="scan-icon">&#9673;</div></div></div>
+  <p class="scan-text" id="scan-text">initializing...</p>
+  <div class="scan-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- ARCHIVE SCREEN -->
+<div class="screen" id="screen-archive">
+  <div class="archive-wrap">
+    <span class="archive-tag">ARCHIVE SYSTEM v1.0</span>
+    <h2 class="archive-title">Personal Memory Archive</h2>
+    <p class="archive-sub">select a memory to recover</p>
+    <div class="folders-grid">
+      <div class="folder-card" data-folder="first"><div class="f-icon">&#9672;</div><div class="f-label">FIRST_CONTACT</div><div class="f-date">18.02 &middot; 20:45</div><div class="f-status">AVAILABLE</div></div>
+      <div class="folder-card" data-folder="chaotic"><div class="f-icon">&#9673;</div><div class="f-label">CHAOTIC_MOMENTS</div><div class="f-date">various dates</div><div class="f-status">AVAILABLE</div></div>
+      <div class="folder-card" data-folder="unsent"><div class="f-icon">&#9671;</div><div class="f-label">UNSENT_THINGS</div><div class="f-date">never sent</div><div class="f-status">AVAILABLE</div></div>
+      <div class="folder-card locked" data-folder="final"><div class="f-icon">&#11041;</div><div class="f-label">FINAL_MESSAGE</div><div class="f-date">today</div><div class="f-status locked-s">LOCKED</div><div class="f-hint">complete all memories first</div></div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" id="pf"></div></div><span class="progress-lbl" id="pl">0 / 3 memories recovered</span></div>
+  </div>
+</div>
+
+
+<!-- FIRST CONTACT SCREEN -->
+<div class="screen" id="screen-first">
+  <div class="mem-container" id="fc-container"></div>
+</div>
+
+<!-- CHAOTIC MOMENTS SCREEN -->
+<div class="screen" id="screen-chaotic">
+  <div class="mem-container" id="ch-container"></div>
+</div>
+
+<!-- UNSENT THINGS SCREEN -->
+<div class="screen" id="screen-unsent">
+  <div class="mem-container" id="un-container"></div>
+</div>
+
+<!-- FINAL MESSAGE SCREEN -->
+<div class="screen" id="screen-final">
+  <div class="mem-container" id="fn-container"></div>
+</div>
+
+
+<style>
+/* ENTRY */
+#screen-entry{background:linear-gradient(160deg,#fff 0%,#fff0f5 30%,#ffd6e7 100%);gap:1.2rem}
+.entry-logo{font-size:2.5rem;color:var(--pink-soft);animation:pg 3s ease-in-out infinite}
+@keyframes pg{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+.entry-title{font-size:2.8rem;font-weight:300;letter-spacing:.15em}
+.entry-sub{font-size:.95rem;color:var(--text-soft);letter-spacing:.08em}
+.btn-start{margin-top:1.5rem;padding:1rem 3.5rem;border:1px solid var(--pink-soft);border-radius:50px;background:transparent;color:var(--text-mid);font-size:.9rem;letter-spacing:.3em;cursor:pointer;transition:all var(--tf)}
+.btn-start:hover{background:var(--pink-soft);color:#fff;box-shadow:0 0 30px var(--pink-glow)}
+.entry-hint{margin-top:2rem;font-size:.7rem;color:var(--text-soft);letter-spacing:.1em;opacity:.5}
+
+/* SCAN */
+#screen-scan{background:radial-gradient(ellipse at center,#fff5f8 0%,#ffe8f0 100%);gap:1.5rem}
+.scan-ring{width:160px;height:160px;border-radius:50%;border:1px solid var(--pink-soft);display:flex;align-items:center;justify-content:center;animation:sr 6s linear infinite}
+@keyframes sr{to{transform:rotate(360deg)}}
+.scan-inner-ring{width:110px;height:110px;border-radius:50%;border:2px solid var(--pink-soft);display:flex;align-items:center;justify-content:center;background:rgba(255,240,245,.5);animation:sp 2s ease-in-out infinite}
+@keyframes sp{0%,100%{box-shadow:0 0 0 0 var(--pink-glow)}50%{box-shadow:0 0 30px 10px var(--pink-glow)}}
+.scan-icon{font-size:2rem;color:var(--pink-soft)}
+.scan-text{font-size:.85rem;color:var(--text-mid);letter-spacing:.12em;transition:opacity .5s}
+.scan-dots{display:flex;gap:6px}
+.scan-dots span{width:5px;height:5px;border-radius:50%;background:var(--pink-soft);animation:db 1.2s ease-in-out infinite}
+.scan-dots span:nth-child(2){animation-delay:.2s}
+.scan-dots span:nth-child(3){animation-delay:.4s}
+@keyframes db{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* ARCHIVE */
+#screen-archive{background:linear-gradient(160deg,#fff8fa 0%,#fff0f5 50%,#ffe4ef 100%);padding:2rem}
+.archive-wrap{width:100%;max-width:700px;text-align:center;z-index:2}
+.archive-tag{font-size:.65rem;letter-spacing:.2em;color:var(--text-soft);border:1px solid var(--pink-mid);padding:.2rem .8rem;border-radius:20px}
+.archive-title{font-size:1.6rem;font-weight:300;margin-top:1rem;letter-spacing:.05em}
+.archive-sub{font-size:.8rem;color:var(--text-soft);margin-top:.3rem;letter-spacing:.05em}
+.folders-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:2rem}
+@media(max-width:500px){.folders-grid{grid-template-columns:1fr}}
+.folder-card{position:relative;padding:1.8rem 1.4rem;background:rgba(255,255,255,.7);border:1px solid var(--pink-mid);border-radius:16px;cursor:pointer;transition:all var(--tf);backdrop-filter:blur(10px);text-align:left}
+.folder-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(255,182,213,.25);border-color:var(--pink-soft)}
+.folder-card.locked{opacity:.5;cursor:not-allowed;filter:grayscale(.3)}
+.folder-card.locked:hover{transform:none;box-shadow:none}
+.folder-card.completed{border-color:#c8e6c9}
+.folder-card.completed .f-status{color:#66bb6a}
+.f-icon{font-size:1.4rem;color:var(--pink-soft);margin-bottom:.5rem}
+.f-label{font-size:.75rem;letter-spacing:.15em;font-weight:500}
+.f-date{font-size:.65rem;color:var(--text-soft);margin-top:.2rem}
+.f-status{font-size:.6rem;letter-spacing:.15em;margin-top:.7rem;color:var(--text-mid)}
+.f-status.locked-s{color:#e57373}
+.f-hint{font-size:.55rem;color:var(--text-soft);margin-top:.2rem;font-style:italic}
+.progress-wrap{margin-top:2rem;text-align:center}
+.progress-bar{width:100%;height:3px;background:var(--pink-mid);border-radius:3px;overflow:hidden;margin-bottom:.5rem}
+.progress-fill{height:100%;width:0;background:var(--pink-soft);transition:width var(--tm);border-radius:3px}
+.progress-lbl{font-size:.65rem;color:var(--text-soft);letter-spacing:.1em}
+</style>
+
+
+<style>
+/* MEMORY CONTAINERS */
+.mem-container{width:100%;max-width:550px;text-align:center;z-index:2;padding:2rem}
+.mem-loader{width:36px;height:36px;border-radius:50%;border:2px solid var(--pink-mid);border-top-color:var(--pink-soft);animation:spin 1s linear infinite;margin:0 auto 1.5rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mem-text{font-size:.85rem;color:var(--text-mid);letter-spacing:.08em;min-height:1.2rem;transition:opacity .5s}
+.date-reveal{margin:1rem 0}
+.date-day{display:block;font-size:.75rem;letter-spacing:.3em;color:var(--text-soft);margin-bottom:.3rem}
+.date-num{display:block;font-size:2.4rem;font-weight:300;letter-spacing:.05em}
+.date-time{display:block;font-size:1.2rem;color:var(--pink-soft);margin-top:.3rem;letter-spacing:.1em}
+.date-sub{font-size:.8rem;color:var(--text-soft);font-style:italic;margin-top:.5rem}
+.msg-box{width:100%;max-width:320px;margin:0 auto;display:flex;flex-direction:column;gap:.7rem}
+.msg{padding:.65rem 1rem;border-radius:18px;font-size:.88rem;opacity:0;transform:translateY(10px);transition:all .6s ease;max-width:75%}
+.msg.show{opacity:1;transform:translateY(0)}
+.msg-r{align-self:flex-end;background:var(--pink-soft);color:#fff;border-bottom-right-radius:4px}
+.msg-l{align-self:flex-start;background:#f0f0f0;color:var(--text-dark);border-bottom-left-radius:4px}
+.placeholder-img{width:100%;max-width:280px;height:180px;margin:1.5rem auto;border-radius:12px;border:2px dashed var(--pink-mid);display:flex;align-items:center;justify-content:center;background:rgba(255,240,245,.5)}
+.placeholder-img span{font-size:.65rem;letter-spacing:.15em;color:var(--text-soft)}
+.placeholder-img.small{height:110px;max-width:140px}
+.refl-line{font-size:.8rem;color:var(--text-soft);letter-spacing:.05em;margin:.5rem 0;opacity:0;transform:translateY(5px);transition:all .8s ease}
+.refl-line.show{opacity:1;transform:translateY(0)}
+.refl-hl{color:var(--pink-soft);font-weight:500}
+.emo-quote{font-size:1.05rem;font-style:italic;color:var(--text-mid);line-height:1.6;margin:2rem 0;opacity:0;transition:opacity 1.5s ease}
+.emo-quote.show{opacity:1}
+.growth-line{display:flex;align-items:center;justify-content:center;position:relative;padding:1.5rem 0;margin:1.5rem 0}
+.growth-line::before{content:'';position:absolute;left:10%;right:10%;height:2px;background:linear-gradient(90deg,var(--pink-mid),var(--pink-soft));top:50%}
+.g-dot{width:10px;height:10px;border-radius:50%;background:var(--pink-soft);position:relative;margin:0 1.2rem;z-index:1;opacity:0;transform:scale(0);transition:all .5s ease}
+.g-dot.show{opacity:1;transform:scale(1)}
+.g-dot.big{width:16px;height:16px;box-shadow:0 0 15px var(--pink-glow)}
+.g-dot::after{content:attr(data-l);position:absolute;top:120%;left:50%;transform:translateX(-50%);font-size:.55rem;color:var(--text-soft);white-space:nowrap}
+.growth-lbl{font-size:.75rem;color:var(--pink-soft);margin-top:.5rem;letter-spacing:.1em;opacity:0;transition:opacity 1s ease}
+.growth-lbl.show{opacity:1}
+.mem-end{margin-top:2.5rem}
+.mem-stable{font-size:.7rem;color:var(--text-soft);letter-spacing:.15em;margin-bottom:1rem}
+.btn-cont{padding:.8rem 2.5rem;border:1px solid var(--pink-soft);border-radius:50px;background:transparent;color:var(--text-mid);font-size:.8rem;letter-spacing:.2em;cursor:pointer;transition:all var(--tf)}
+.btn-cont:hover{background:var(--pink-soft);color:#fff;box-shadow:0 0 20px var(--pink-glow)}
+.meme-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:1.5rem auto;max-width:320px}
+.unsent-msg{font-size:.88rem;color:var(--text-mid);line-height:1.6;margin:1rem 0;padding:.8rem 1.2rem;border-left:2px solid var(--pink-soft);text-align:left;opacity:0;transform:translateX(-10px);transition:all .8s ease}
+.unsent-msg.show{opacity:1;transform:translateX(0)}
+.final-glow{position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(circle,var(--pink-glow) 0%,transparent 60%);animation:fpulse 3s ease-in-out infinite;z-index:-1}
+@keyframes fpulse{0%,100%{transform:scale(.8);opacity:.3}50%{transform:scale(1.2);opacity:.6}}
+.final-title{font-size:2.4rem;font-weight:300;letter-spacing:.05em;margin-bottom:1.2rem}
+.final-msg{font-size:1.05rem;color:var(--text-mid);line-height:1.8;margin-bottom:.7rem}
+.final-sub{font-size:1rem;color:var(--pink-soft);font-style:italic}
+.final-sign{font-size:.8rem;color:var(--text-soft);margin:2rem 0 1rem;letter-spacing:.05em}
+.arm-line{font-size:.9rem;color:var(--text-mid);font-style:italic;margin-bottom:1.5rem;opacity:0;transition:opacity 1.5s}
+.arm-line.show{opacity:1}
+</style>
+
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const state = {
+  completedFolders: { first: false, chaotic: false, unsent: false },
+  currentFolder: null,
+  finalUnlocked: false
+};
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ═══════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════
+(function createParticles() {
+  const c = $('particles');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const s = Math.random() * 4 + 2;
+    Object.assign(p.style, {
+      width: s+'px', height: s+'px',
+      left: Math.random()*100+'%',
+      animationDuration: (Math.random()*15+10)+'s',
+      animationDelay: (Math.random()*10)+'s'
+    });
+    c.appendChild(p);
+  }
+})();
+
+// ═══════════════════════════════════════════
+// SCREEN TRANSITIONS
+// ═══════════════════════════════════════════
+function go(from, to) {
+  $(from).classList.remove('active');
+  setTimeout(() => $(to).classList.add('active'), 400);
+}
+
+// ═══════════════════════════════════════════
+// ENTRY
+// ═══════════════════════════════════════════
+$('btn-start').onclick = () => {
+  go('screen-entry', 'screen-scan');
+  setTimeout(runScan, 800);
+};
+
+// ═══════════════════════════════════════════
+// SCAN
+// ═══════════════════════════════════════════
+async function runScan() {
+  const el = $('scan-text');
+  const lines = [
+    'scanning local environment\u2026',
+    'checking presence\u2026',
+    'recognition in progress\u2026',
+    'presence confirmed',
+    'accessing personal archive\u2026'
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    el.style.opacity = '0';
+    await sleep(400);
+    el.textContent = lines[i];
+    el.style.opacity = '1';
+    await sleep(i < 3 ? 1400 : 1800);
+  }
+  await sleep(800);
+  go('screen-scan', 'screen-archive');
+}
+</script>
+
+
+<script>
+// ═══════════════════════════════════════════
+// ARCHIVE UI
+// ═══════════════════════════════════════════
+function updateArchive() {
+  const done = Object.values(state.completedFolders).filter(Boolean).length;
+  $('pf').style.width = ((done/3)*100)+'%';
+  $('pl').textContent = done+' / 3 memories recovered';
+  document.querySelectorAll('.folder-card').forEach(card => {
+    const f = card.dataset.folder;
+    if (f !== 'final' && state.completedFolders[f]) {
+      card.classList.add('completed');
+      card.querySelector('.f-status').textContent = 'COMPLETED';
+    }
+  });
+  if (done >= 3 && !state.finalUnlocked) {
+    state.finalUnlocked = true;
+    const fc = document.querySelector('[data-folder="final"]');
+    fc.classList.remove('locked');
+    fc.querySelector('.f-status').textContent = 'UNLOCKED';
+    fc.querySelector('.f-status').classList.remove('locked-s');
+    const h = fc.querySelector('.f-hint');
+    if (h) h.style.display = 'none';
+  }
+}
+
+document.querySelectorAll('.folder-card').forEach(card => {
+  card.onclick = () => {
+    const f = card.dataset.folder;
+    if (f === 'final' && !state.finalUnlocked) return;
+    if (card.classList.contains('locked')) return;
+    state.currentFolder = f;
+    go('screen-archive', 'screen-'+f);
+    setTimeout(() => runMemory(f), 600);
+  };
+});
+
+function runMemory(f) {
+  switch(f) {
+    case 'first': runFirst(); break;
+    case 'chaotic': runChaotic(); break;
+    case 'unsent': runUnsent(); break;
+    case 'final': runFinal(); break;
+  }
+}
+
+// HELPER: animated text lines
+async function animText(el, lines, delay=1200) {
+  for (const line of lines) {
+    el.style.opacity = '0';
+    await sleep(300);
+    el.textContent = line;
+    el.style.opacity = '1';
+    await sleep(delay);
+  }
+}
+
+// HELPER: fade in element
+function fadeIn(el, delay=0) {
+  return new Promise(r => {
+    setTimeout(() => { el.classList.add('show'); r(); }, delay);
+  });
+}
+</script>
+
+
+<script>
+// ═══════════════════════════════════════════
+// FIRST_CONTACT — Full Implementation
+// ═══════════════════════════════════════════
+async function runFirst() {
+  const c = $('fc-container');
+  c.innerHTML = '';
+
+  // STEP 1: Loading
+  c.innerHTML = '<div class="mem-loader"></div><p class="mem-text" id="ft1"></p>';
+  await sleep(300);
+  await animText($('ft1'), [
+    'recovering first memory\u2026',
+    'searching emotional archive\u2026',
+    'reconstruction started\u2026'
+  ], 1400);
+  await sleep(600);
+
+  // STEP 2: Date reveal
+  c.innerHTML = '<div class="date-reveal"><span class="date-day">WEDNESDAY</span><span class="date-num">18 FEBRUARY</span><span class="date-time">20:45</span></div><p class="date-sub">first detected interaction</p>';
+  await sleep(3500);
+
+  // STEP 3: Conversation
+  c.innerHTML = '<div class="msg-box"><div class="msg msg-r" id="m1">\u043F\u0440\u0438\u0432\u0435\u0442</div><div class="msg msg-l" id="m2">\u043F\u0440\u0438\u0432\u0435\u0442)</div><div class="msg msg-r" id="m3">\u0430 \u0442\u044B \u043A\u0442\u043E</div></div><p style="margin-top:1.5rem;font-size:1.5rem;color:var(--text-soft);animation:db 1.5s infinite">\u2026</p>';
+  await sleep(800);
+  $('m1').classList.add('show');
+  await sleep(1500);
+  $('m2').classList.add('show');
+  await sleep(1800);
+  $('m3').classList.add('show');
+  await sleep(3000);
+
+  // STEP 4: Armenian emotional line + screenshot
+  c.innerHTML = '<p class="arm-line" id="armL">\u0531\u0574\u0565\u0576 \u056B\u0576\u0579 \u057D\u056F\u057D\u057E\u0565\u0581</p><div class="placeholder-img"><span>SCREENSHOT_PLACEHOLDER_1</span></div>';
+  await sleep(400);
+  $('armL').classList.add('show');
+  await sleep(3500);
+
+  // STEP 5: AI Reflection
+  c.innerHTML = '<p class="refl-line" id="r1">\u201CUnknown origin of interaction.\u201D</p><p class="refl-line" id="r2">\u201CNo importance detected at time of creation.\u201D</p><p class="refl-line refl-hl" id="r3">\u201CFuture significance: unexpectedly high.\u201D</p>';
+  await sleep(800);
+  $('r1').classList.add('show');
+  await sleep(1200);
+  $('r2').classList.add('show');
+  await sleep(1200);
+  $('r3').classList.add('show');
+  await sleep(2500);
+
+  // STEP 6: Emotional line
+  c.innerHTML = '<p class="emo-quote" id="eq1">\u201CStrange how important things begin from the most random conversations.\u201D</p>';
+  await sleep(400);
+  $('eq1').classList.add('show');
+  await sleep(4000);
+
+  // STEP 7: Growth visualization
+  c.innerHTML = '<div class="growth-line"><div class="g-dot" id="gd1" data-l="18 feb"></div><div class="g-dot" id="gd2" data-l="march"></div><div class="g-dot" id="gd3" data-l="spring"></div><div class="g-dot" id="gd4" data-l="summer"></div><div class="g-dot big" id="gd5" data-l="now"></div></div><p class="growth-lbl" id="glbl">importance: increasing \u2191</p><div class="mem-end"><p class="mem-stable">memory stabilized</p><button class="btn-cont" id="btn-fd">continue</button></div>';
+  await sleep(400);
+  for (let i = 1; i <= 5; i++) {
+    await sleep(500);
+    $('gd'+i).classList.add('show');
+  }
+  await sleep(400);
+  $('glbl').classList.add('show');
+
+  $('btn-fd').onclick = () => {
+    state.completedFolders.first = true;
+    go('screen-first', 'screen-archive');
+    setTimeout(updateArchive, 500);
+  };
+}
+</script>
+
+
+<script>
+// ═══════════════════════════════════════════
+// CHAOTIC_MOMENTS
+// ═══════════════════════════════════════════
+async function runChaotic() {
+  const c = $('ch-container');
+  c.innerHTML = '';
+
+  // Step 1: Loading
+  c.innerHTML = '<div class="mem-loader"></div><p class="mem-text" id="ct1"></p>';
+  await sleep(300);
+  await animText($('ct1'), [
+    'loading chaotic memories\u2026',
+    'restoring fragments\u2026',
+    'chaos level: maximum'
+  ], 1200);
+  await sleep(500);
+
+  // Step 2: Title + memes
+  c.innerHTML = '<h3 style="font-size:1.3rem;font-weight:300;letter-spacing:.1em;margin-bottom:.3rem">CHAOTIC_MOMENTS</h3><p style="font-size:.8rem;color:var(--text-soft);margin-bottom:1.5rem">the beautiful mess of us</p><div class="meme-grid"><div class="placeholder-img small"><span>MEME_PLACEHOLDER_1</span></div><div class="placeholder-img small"><span>MEME_PLACEHOLDER_2</span></div><div class="placeholder-img small"><span>SCREENSHOT_PLACEHOLDER_2</span></div><div class="placeholder-img small"><span>MEME_PLACEHOLDER_3</span></div></div>';
+  await sleep(3500);
+
+  // Step 3: Quotes + reflection
+  c.innerHTML = '<p class="emo-quote" id="cq1" style="font-size:.88rem;margin:.6rem 0">\u201CRemember that one time at 3am\u2026\u201D</p><p class="emo-quote" id="cq2" style="font-size:.88rem;margin:.6rem 0">\u201CI still can\u2019t believe you actually did that\u201D</p><p class="emo-quote" id="cq3" style="font-size:.88rem;margin:.6rem 0">\u201CWe were so unhinged and it was perfect\u201D</p><div style="margin-top:1.5rem"><p class="refl-line" id="cr1">\u201CChaos assessment: off the charts.\u201D</p><p class="refl-line" id="cr2">\u201CEmotional damage: positive.\u201D</p><p class="refl-line refl-hl" id="cr3">\u201CBond strength: unbreakable.\u201D</p></div>';
+  await sleep(600);
+  $('cq1').classList.add('show'); await sleep(900);
+  $('cq2').classList.add('show'); await sleep(900);
+  $('cq3').classList.add('show'); await sleep(1000);
+  $('cr1').classList.add('show'); await sleep(900);
+  $('cr2').classList.add('show'); await sleep(900);
+  $('cr3').classList.add('show'); await sleep(2000);
+
+  // Step 4: End
+  c.innerHTML = '<p class="emo-quote" id="ceq">\u201CThe best memories are never the ones you plan.\u201D</p><div class="mem-end"><p class="mem-stable">memory stabilized</p><button class="btn-cont" id="btn-cd">continue</button></div>';
+  await sleep(400);
+  $('ceq').classList.add('show');
+
+  $('btn-cd').onclick = () => {
+    state.completedFolders.chaotic = true;
+    go('screen-chaotic', 'screen-archive');
+    setTimeout(updateArchive, 500);
+  };
+}
+
+// ═══════════════════════════════════════════
+// UNSENT_THINGS
+// ═══════════════════════════════════════════
+async function runUnsent() {
+  const c = $('un-container');
+  c.innerHTML = '';
+
+  // Step 1: Loading
+  c.innerHTML = '<div class="mem-loader"></div><p class="mem-text" id="ut1"></p>';
+  await sleep(300);
+  await animText($('ut1'), [
+    'opening unsent archive\u2026',
+    'these were never delivered\u2026',
+    'reading anyway\u2026'
+  ], 1400);
+  await sleep(500);
+
+  // Step 2: Title
+  c.innerHTML = '<h3 style="font-size:1.3rem;font-weight:300;letter-spacing:.1em">UNSENT_THINGS</h3><p style="font-size:.8rem;color:var(--text-soft);margin-top:.3rem">messages written but never sent</p>';
+  await sleep(2500);
+
+  // Step 3: Messages
+  c.innerHTML = '<div class="unsent-msg" id="um1">\u201CI wanted to tell you that you made my whole day better just by existing in it.\u201D</div><div class="unsent-msg" id="um2">\u201CSometimes I type things and then delete them because they feel too honest.\u201D</div><div class="unsent-msg" id="um3">\u201CYou probably don\u2019t know how much you actually mean.\u201D</div>';
+  await sleep(800);
+  $('um1').classList.add('show'); await sleep(1500);
+  $('um2').classList.add('show'); await sleep(1500);
+  $('um3').classList.add('show'); await sleep(2000);
+
+  // Step 4: Reflection + end
+  c.innerHTML = '<p class="refl-line" id="ur1">\u201CMessages found: 47 unsent drafts.\u201D</p><p class="refl-line" id="ur2">\u201CEmotional weight: significant.\u201D</p><p class="refl-line refl-hl" id="ur3">\u201CRecommendation: deliver them.\u201D</p><p class="emo-quote" id="ueq" style="margin-top:1.5rem">\u201CSome things don\u2019t need to be said to be felt.\u201D</p><div class="mem-end"><p class="mem-stable">memory stabilized</p><button class="btn-cont" id="btn-ud">continue</button></div>';
+  await sleep(600);
+  $('ur1').classList.add('show'); await sleep(1000);
+  $('ur2').classList.add('show'); await sleep(1000);
+  $('ur3').classList.add('show'); await sleep(1200);
+  $('ueq').classList.add('show');
+
+  $('btn-ud').onclick = () => {
+    state.completedFolders.unsent = true;
+    go('screen-unsent', 'screen-archive');
+    setTimeout(updateArchive, 500);
+  };
+}
+</script>
+
+
+<script>
+// ═══════════════════════════════════════════
+// FINAL_MESSAGE
+// ═══════════════════════════════════════════
+async function runFinal() {
+  const c = $('fn-container');
+  c.innerHTML = '';
+
+  // Step 1: Loading
+  c.innerHTML = '<div class="mem-loader"></div><p class="mem-text" id="fnt1"></p>';
+  await sleep(300);
+  await animText($('fnt1'), [
+    'unlocking final memory\u2026',
+    'decrypting\u2026',
+    'this one is important\u2026'
+  ], 1600);
+  await sleep(1000);
+
+  // Step 2: Birthday reveal
+  c.innerHTML = '<div style="position:relative;padding:3rem 0"><div class="final-glow"></div><h2 class="final-title">Happy Birthday</h2><p class="final-msg">You turned a random conversation into something I never want to lose.</p><p class="final-sub">Thank you for existing.</p></div>';
+  await sleep(6000);
+
+  // Step 3: Voice placeholder + end
+  c.innerHTML = '<div class="placeholder-img"><span>VOICE_NOTE_PLACEHOLDER</span></div><p style="font-size:.65rem;color:var(--text-soft);margin-top:.5rem;letter-spacing:.1em">optional: voice / video message here</p><p class="final-sign">\u2014 from your personal archive \u2726</p><button class="btn-cont" id="btn-rs">start over</button>';
+
+  $('btn-rs').onclick = () => {
+    state.completedFolders = { first: false, chaotic: false, unsent: false };
+    state.currentFolder = null;
+    state.finalUnlocked = false;
+    document.querySelectorAll('.folder-card').forEach(card => {
+      card.classList.remove('completed');
+      const f = card.dataset.folder;
+      if (f === 'final') {
+        card.classList.add('locked');
+        card.querySelector('.f-status').textContent = 'LOCKED';
+        card.querySelector('.f-status').classList.add('locked-s');
+        const h = card.querySelector('.f-hint');
+        if (h) h.style.display = '';
+      } else {
+        card.querySelector('.f-status').textContent = 'AVAILABLE';
+      }
+    });
+    go('screen-final', 'screen-entry');
+    setTimeout(updateArchive, 500);
+  };
+}
+
+// ═══════════════════════════════════════════
+// AUDIO (optional, uncomment to use)
+// ═══════════════════════════════════════════
+// const bgAudio = new Audio('your-music-file.mp3');
+// bgAudio.loop = true; bgAudio.volume = 0;
+// function audioIn(vol=0.12, dur=3000) {
+//   bgAudio.play();
+//   const s = vol/(dur/50);
+//   const i = setInterval(() => {
+//     if(bgAudio.volume<vol) bgAudio.volume=Math.min(bgAudio.volume+s,vol);
+//     else clearInterval(i);
+//   }, 50);
+// }
+// function audioOut(dur=2000) {
+//   const s = bgAudio.volume/(dur/50);
+//   const i = setInterval(() => {
+//     if(bgAudio.volume>0.01) bgAudio.volume=Math.max(bgAudio.volume-s,0);
+//     else{bgAudio.volume=0;bgAudio.pause();clearInterval(i);}
+//   }, 50);
+// }
+</script>
+</body>
+</html>
